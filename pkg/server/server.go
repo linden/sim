@@ -16,6 +16,9 @@ import (
 )
 
 type Handler struct {
+	p2p int
+	rpc int
+
 	harness *rpctest.Harness
 }
 
@@ -72,7 +75,7 @@ func (h *Handler) Mine(args *types.MineArgs, reply *types.Mine) error {
 func (h *Handler) Address(args types.Empty, reply *types.Address) error {
 	// reply with the P2P address.
 	*reply = types.Address{
-		P2P: h.harness.P2PAddress(),
+		P2P: fmt.Sprintf(":%d", h.p2p),
 	}
 
 	return nil
@@ -99,6 +102,10 @@ func (s *Server) Accept() {
 }
 
 func New(addr string) (*Server, error) {
+	// find the next available ports for P2P and RPC.
+	p2pp := rpctest.NextAvailablePort()
+	rpcp := rpctest.NextAvailablePort()
+
 	// create a new harness.
 	h, err := rpctest.New(types.Chain, nil, []string{
 		// support neutrino.
@@ -107,6 +114,10 @@ func New(addr string) (*Server, error) {
 		// prevent banning during testing.
 		"--nobanning",
 		"--nostalldetect",
+
+		// listen on all interfaces.
+		fmt.Sprintf("--listen=:%d", p2pp),
+		fmt.Sprintf("--rpclisten=:%d", rpcp),
 	}, "")
 	if err != nil {
 		return nil, err
@@ -129,6 +140,9 @@ func New(addr string) (*Server, error) {
 
 	// create the handler.
 	hdlr := &Handler{
+		p2p: p2pp,
+		rpc: rpcp,
+
 		harness: h,
 	}
 
