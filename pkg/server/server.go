@@ -101,10 +101,15 @@ func (s *Server) Accept() {
 	s.server.Accept(s.listener)
 }
 
-func New(addr string) (*Server, error) {
-	// find the next available ports for P2P and RPC.
-	p2pp := rpctest.NextAvailablePort()
-	rpcp := rpctest.NextAvailablePort()
+func New(addr string, rpcp, p2pp int) (*Server, error) {
+	// find the next available ports for P2P and RPC if not defined.
+	if rpcp == 0 {
+		rpcp = rpctest.NextAvailablePort()
+	}
+
+	if p2pp == 0 {
+		p2pp = rpctest.NextAvailablePort()
+	}
 
 	// create a new harness.
 	h, err := rpctest.New(types.Chain, nil, []string{
