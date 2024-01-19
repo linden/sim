@@ -1,11 +1,11 @@
-package types
+package sim
 
 import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
-const Socket = "/tmp/simd.sock"
+const DefaultSocket = "/tmp/simd.sock"
 
 var Chain = &chaincfg.SimNetParams
 

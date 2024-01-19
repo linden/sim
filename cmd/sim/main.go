@@ -7,8 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/linden/sim/internal/types"
-	"github.com/linden/sim/pkg/client"
+	"github.com/linden/sim"
 )
 
 const help = `sim - commands:
@@ -24,13 +23,13 @@ func init() {
 	log.SetFlags(0)
 	log.SetPrefix("simd: ")
 
-	flag.StringVar(&Socket, "socket", types.Socket, "")
+	flag.StringVar(&Socket, "socket", sim.DefaultSocket, "")
 	flag.Parse()
 }
 
 func main() {
 	// connect to the daemon.
-	c, err := client.Dial(Socket)
+	c, err := sim.Dial(Socket)
 	if err != nil {
 		log.Fatal(err)
 	}

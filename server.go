@@ -1,4 +1,4 @@
-package server
+package sim
 
 import (
 	"errors"
@@ -11,8 +11,6 @@ import (
 	"github.com/btcsuite/btcd/integration/rpctest"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-
-	"github.com/linden/sim/internal/types"
 )
 
 type Handler struct {
@@ -22,15 +20,15 @@ type Handler struct {
 	harness *rpctest.Harness
 }
 
-func (h *Handler) Ping(args types.Empty, reply *string) error {
+func (h *Handler) Ping(args Empty, reply *string) error {
 	*reply = "pong"
 
 	return nil
 }
 
-func (h *Handler) Send(args *types.SendArgs, reply *types.Send) error {
+func (h *Handler) Send(args *SendArgs, reply *Send) error {
 	// decode the the raw address.
-	addr, err := btcutil.DecodeAddress(args.Address, types.Chain)
+	addr, err := btcutil.DecodeAddress(args.Address, Chain)
 	if err != nil {
 		return fmt.Errorf("could not decode address: %v", err)
 	}
@@ -50,14 +48,14 @@ func (h *Handler) Send(args *types.SendArgs, reply *types.Send) error {
 		return fmt.Errorf("could not send output to testing address: %v", err)
 	}
 
-	*reply = types.Send{
+	*reply = Send{
 		TXID: txid,
 	}
 
 	return nil
 }
 
-func (h *Handler) Mine(args *types.MineArgs, reply *types.Mine) error {
+func (h *Handler) Mine(args *MineArgs, reply *Mine) error {
 	// mine {count} blocks.
 	blks, err := h.harness.Client.Generate(args.Count)
 	if err != nil {
@@ -65,16 +63,16 @@ func (h *Handler) Mine(args *types.MineArgs, reply *types.Mine) error {
 	}
 
 	// reply with the block hashes.
-	*reply = types.Mine{
+	*reply = Mine{
 		Blocks: blks,
 	}
 
 	return nil
 }
 
-func (h *Handler) Address(args types.Empty, reply *types.Address) error {
+func (h *Handler) Address(args Empty, reply *Address) error {
 	// reply with the P2P address.
-	*reply = types.Address{
+	*reply = Address{
 		P2P: fmt.Sprintf(":%d", h.p2p),
 	}
 
@@ -101,7 +99,7 @@ func (s *Server) Accept() {
 	s.server.Accept(s.listener)
 }
 
-func New(addr string, rpcp, p2pp int) (*Server, error) {
+func NewServer(addr string, rpcp, p2pp int) (*Server, error) {
 	// find the next available ports for P2P and RPC if not defined.
 	if rpcp == 0 {
 		rpcp = rpctest.NextAvailablePort()
@@ -112,7 +110,7 @@ func New(addr string, rpcp, p2pp int) (*Server, error) {
 	}
 
 	// create a new harness.
-	h, err := rpctest.New(types.Chain, nil, []string{
+	h, err := rpctest.New(Chain, nil, []string{
 		// support neutrino.
 		"--txindex",
 

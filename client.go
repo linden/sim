@@ -1,10 +1,8 @@
-package client
+package sim
 
 import (
 	"errors"
 	"net/rpc"
-
-	"github.com/linden/sim/internal/types"
 )
 
 type Client struct {
@@ -14,7 +12,7 @@ type Client struct {
 func (c *Client) Ping() error {
 	var res string
 
-	err := c.Call("Handler.Ping", types.NewEmpty(), &res)
+	err := c.Call("Handler.Ping", NewEmpty(), &res)
 	if err != nil {
 		return err
 	}
@@ -26,27 +24,27 @@ func (c *Client) Ping() error {
 	return nil
 }
 
-func (c *Client) Address() (*types.Address, error) {
-	res := &types.Address{}
+func (c *Client) Address() (*Address, error) {
+	res := &Address{}
 
-	err := c.Call("Handler.Address", types.NewEmpty(), res)
+	err := c.Call("Handler.Address", NewEmpty(), res)
 	return res, err
 }
 
-func (c *Client) Send(addr string, amt int64) (*types.Send, error) {
-	res := &types.Send{}
+func (c *Client) Send(addr string, amt int64) (*Send, error) {
+	res := &Send{}
 
-	err := c.Call("Handler.Send", &types.SendArgs{
+	err := c.Call("Handler.Send", &SendArgs{
 		Address: addr,
 		Amount:  amt,
 	}, res)
 	return res, err
 }
 
-func (c *Client) Mine(count uint32) (*types.Mine, error) {
-	res := &types.Mine{}
+func (c *Client) Mine(count uint32) (*Mine, error) {
+	res := &Mine{}
 
-	err := c.Call("Handler.Mine", &types.MineArgs{
+	err := c.Call("Handler.Mine", &MineArgs{
 		Count: count,
 	}, res)
 	return res, err
