@@ -37,3 +37,8 @@ type Mine struct {
 type Address struct {
 	P2P string
 }
+
+type BestBlock struct {
+	Height int32
+	Hash   *chainhash.Hash
+}

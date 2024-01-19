@@ -15,7 +15,8 @@ const help = `sim - commands:
 help - display this message.
 address - display the server's P2P address.
 mine <count> - mine blocks.
-send <address> <amount> - send sats to an address.`
+send <address> <amount> - send sats to an address.
+bestblock - query the highest block.`
 
 var Socket string
 
@@ -86,6 +87,15 @@ func main() {
 		}
 
 		fmt.Fprintf(os.Stdout, "blocks: %+v\n", blks.Blocks)
+
+	case "bestblock":
+		// query the best block.
+		bst, err := c.BestBlock()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Fprintf(os.Stdout, "height: %d, hash: %x\n", bst.Height, bst.Hash)
 
 	case "help":
 		fmt.Fprintf(os.Stdout, "%s\n", help)

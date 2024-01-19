@@ -50,6 +50,13 @@ func (c *Client) Mine(count uint32) (*Mine, error) {
 	return res, err
 }
 
+func (c *Client) BestBlock() (*BestBlock, error) {
+	res := &BestBlock{}
+
+	err := c.Call("Handler.BestBlock", NewEmpty(), res)
+	return res, err
+}
+
 func Dial(addr string) (*Client, error) {
 	c, err := rpc.Dial("unix", addr)
 	if err != nil {

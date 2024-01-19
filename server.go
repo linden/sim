@@ -82,6 +82,22 @@ func (h *Handler) Address(args Empty, reply *Address) error {
 	return nil
 }
 
+func (h *Handler) BestBlock(args Empty, reply *BestBlock) error {
+	// query the best block.
+	hsh, ht, err := h.harness.Client.GetBestBlock()
+	if err != nil {
+		return err
+	}
+
+	// reply with the best block.
+	*reply = BestBlock{
+		Height: ht,
+		Hash:   hsh,
+	}
+
+	return nil
+}
+
 type Server struct {
 	server   *rpc.Server
 	handler  *Handler
