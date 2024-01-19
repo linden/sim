@@ -197,9 +197,34 @@ func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error)
 			return nil, err
 		}
 
+		var l string
+
+		// `btclog.(Level).String()` uses a shorten version of the name, which does not work as an argument.
+		// https://github.com/btcsuite/btclog/blob/84c8d2346e9f/log.go#L98
+		// so instead we convert it manually here.
+		switch level {
+		case btclog.LevelTrace:
+			l = "trace"
+
+		case btclog.LevelDebug:
+			l = "debug"
+
+		case btclog.LevelInfo:
+			l = "info"
+
+		case btclog.LevelWarn:
+			l = "warn"
+
+		case btclog.LevelError:
+			l = "error"
+
+		case btclog.LevelCritical:
+			l = "critical"
+		}
+
 		args = append(args,
 			"--logdir="+lgs,
-			"--debuglevel="+level.String(),
+			"--debuglevel="+l,
 		)
 
 		go watch(lgs)
