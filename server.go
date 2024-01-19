@@ -6,11 +6,14 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/integration/rpctest"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btclog"
 )
 
 type Handler struct {
@@ -99,7 +102,56 @@ func (s *Server) Accept() {
 	s.server.Accept(s.listener)
 }
 
-func NewServer(addr string, rpcp, p2pp int) (*Server, error) {
+func watch(path string) {
+	// path to the log file.
+	p := filepath.Join(path, "simnet", "btcd.log")
+
+	var lst int64
+
+	const tm = 50 * time.Millisecond
+
+	for {
+		// open the log file.
+		f, err := os.Open(p)
+		if err != nil {
+			// ignore error if the file hasn't been created yet.
+			if os.IsNotExist(err) {
+				time.Sleep(tm)
+				continue
+			}
+
+			panic(err)
+		}
+
+		// query the file info.
+		inf, err := f.Stat()
+		if err != nil {
+			panic(err)
+		}
+
+		sz := inf.Size()
+
+		// check if the file size has changed.
+		if sz != lst && sz != 0 {
+			// create a slice with the difference in size.
+			b := make([]byte, sz-lst)
+
+			// read from the last point.
+			_, err = f.ReadAt(b, lst)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Printf("%s", b)
+
+			lst = sz
+		}
+
+		time.Sleep(tm)
+	}
+}
+
+func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error) {
 	// find the next available ports for P2P and RPC if not defined.
 	if rpcp == 0 {
 		rpcp = rpctest.NextAvailablePort()
@@ -109,8 +161,7 @@ func NewServer(addr string, rpcp, p2pp int) (*Server, error) {
 		p2pp = rpctest.NextAvailablePort()
 	}
 
-	// create a new harness.
-	h, err := rpctest.New(Chain, nil, []string{
+	args := []string{
 		// support neutrino.
 		"--txindex",
 
@@ -121,7 +172,25 @@ func NewServer(addr string, rpcp, p2pp int) (*Server, error) {
 		// listen on all interfaces.
 		fmt.Sprintf("--listen=:%d", p2pp),
 		fmt.Sprintf("--rpclisten=:%d", rpcp),
-	}, "")
+	}
+
+	if level != btclog.LevelOff {
+		// create a temporary directory for storing logs.
+		lgs, err := os.MkdirTemp("", "*-simd")
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args,
+			"--logdir="+lgs,
+			"--debuglevel="+level.String(),
+		)
+
+		go watch(lgs)
+	}
+
+	// create a new harness.
+	h, err := rpctest.New(Chain, nil, args, "")
 	if err != nil {
 		return nil, err
 	}
