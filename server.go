@@ -3,10 +3,12 @@ package sim
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/rpc"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/btcsuite/btcd/btcutil"
@@ -15,6 +17,12 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btclog"
 )
+
+func init() {
+	rpctest.ListenAddressGenerator = func() (string, string) {
+		return fmt.Sprintf(rpctest.ListenerFormat, newPort()), fmt.Sprintf(rpctest.ListenerFormat, newPort())
+	}
+}
 
 type Handler struct {
 	p2p int
@@ -167,14 +175,45 @@ func watch(path string) {
 	}
 }
 
+var used = map[int]struct{}{}
+
+func newPort() int {
+	// iterate through all possible ports, starting from the highest.
+	for i := math.MaxUint16; i > 0; i-- {
+		// skip if already being used by us.
+		if _, ok := used[i]; ok {
+			continue
+		}
+
+		// connect to the port on any interface.
+		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", i))
+		if err != nil {
+			// ensure the syscall error is "connection refused".
+			if !errors.Is(err, syscall.ECONNREFUSED) {
+				continue
+			}
+
+			// set the port as used.
+			used[i] = struct{}{}
+
+			return i
+		}
+
+		// close the connection.
+		conn.Close()
+	}
+
+	panic("port exhaustion")
+}
+
 func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error) {
 	// find the next available ports for P2P and RPC if not defined.
 	if rpcp == 0 {
-		rpcp = rpctest.NextAvailablePort()
+		rpcp = newPort()
 	}
 
 	if p2pp == 0 {
-		p2pp = rpctest.NextAvailablePort()
+		p2pp = newPort()
 	}
 
 	args := []string{
