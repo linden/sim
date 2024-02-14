@@ -2,6 +2,7 @@ package sim
 
 import (
 	"errors"
+	"io"
 	"net/rpc"
 )
 
@@ -55,6 +56,17 @@ func (c *Client) BestBlock() (*BestBlock, error) {
 
 	err := c.Call("Handler.BestBlock", NewEmpty(), res)
 	return res, err
+}
+
+func (c *Client) Stop() error {
+	err := c.Call("Handler.Stop", NewEmpty(), NewEmpty())
+
+	// disregard unexpected EOF, as we expect the unix socket listener to close.
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return nil
+	}
+
+	return err
 }
 
 func Dial(addr string) (*Client, error) {

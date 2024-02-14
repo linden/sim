@@ -28,6 +28,8 @@ type Handler struct {
 	p2p int
 	rpc int
 
+	stopChan chan bool
+
 	harness *rpctest.Harness
 }
 
@@ -106,6 +108,19 @@ func (h *Handler) BestBlock(args Empty, reply *BestBlock) error {
 	return nil
 }
 
+func (h *Handler) Stop(args Empty, reply Empty) error {
+	// teardown the btcd node.
+	err := h.harness.TearDown()
+	if err != nil {
+		return err
+	}
+
+	// signal to stop listening.
+	h.stopChan <- true
+
+	return nil
+}
+
 type Server struct {
 	server   *rpc.Server
 	handler  *Handler
@@ -121,9 +136,41 @@ func (s *Server) Close() error {
 	return s.listener.Close()
 }
 
-func (s *Server) Accept() {
-	// start accepting connections.
-	s.server.Accept(s.listener)
+// accept connections with a graceful shutdown.
+func (s *Server) Accept() error {
+	connChan := make(chan net.Conn)
+	errChan := make(chan error)
+
+	// accept connections.
+	for {
+		// wait for connections on another routine, as it's blocking.
+		go func() {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			connChan <- conn
+		}()
+
+		select {
+		// stoo running.
+		case <-s.handler.stopChan:
+			return s.listener.Close()
+
+		// handle a connection.
+		case conn := <-connChan:
+			go s.server.ServeConn(conn)
+
+		// handle a failed connection.
+		case err := <-errChan:
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func watch(path string) {
@@ -294,6 +341,8 @@ func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error)
 	hdlr := &Handler{
 		p2p: p2pp,
 		rpc: rpcp,
+
+		stopChan: make(chan bool, 1),
 
 		harness: h,
 	}

@@ -97,6 +97,12 @@ func main() {
 
 		fmt.Fprintf(os.Stdout, "height: %d, hash: %x\n", bst.Height, bst.Hash)
 
+	case "stop":
+		err := c.Stop()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	case "help":
 		fmt.Fprintf(os.Stdout, "%s\n", help)
 
