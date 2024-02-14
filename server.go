@@ -276,13 +276,13 @@ func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error)
 		fmt.Sprintf("--rpclisten=:%d", rpcp),
 	}
 
-	if level != btclog.LevelOff {
-		// create a temporary directory for storing logs.
-		lgs, err := os.MkdirTemp("", "*-simd")
-		if err != nil {
-			return nil, err
-		}
+	// create a temporary directory for storing logs.
+	lgs, err := os.MkdirTemp("", "*-simd")
+	if err != nil {
+		return nil, err
+	}
 
+	if level != btclog.LevelOff {
 		var l string
 
 		// `btclog.(Level).String()` uses a shorten version of the name, which does not work as an argument.
@@ -314,6 +314,9 @@ func NewServer(addr string, rpcp, p2pp int, level btclog.Level) (*Server, error)
 		)
 
 		go watch(lgs)
+	} else {
+		// btcd doesn't offer an option to completely disable logs, so instead we store them in temporary directory and ignore them.
+		args = append(args, "--logdir="+lgs)
 	}
 
 	// create a new harness.
