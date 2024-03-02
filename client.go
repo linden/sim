@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/rpc"
+	"time"
 )
 
 type Client struct {
@@ -67,6 +68,27 @@ func (c *Client) Stop() error {
 	}
 
 	return err
+}
+
+func (c *Client) Sync(height int32) error {
+	// wait for the chain to sync to a height or greater.
+	for {
+		// query the best block.
+		bst, err := c.BestBlock()
+		if err != nil {
+			return err
+		}
+
+		// ensure the height is correct.
+		if bst.Height >= height {
+			break
+		}
+
+		// wait for 1 second before every check.
+		time.Sleep(1 * time.Second)
+	}
+
+	return nil
 }
 
 func Dial(addr string) (*Client, error) {
